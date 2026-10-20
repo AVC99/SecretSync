@@ -1,0 +1,147 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+
+	"secretsync/internal/bruno"
+	"secretsync/internal/dotenv"
+	"secretsync/internal/fsutil"
+	"secretsync/internal/ui"
+)
+
+// brunoTarget declares each key in a Bruno environment as
+// KEY: {{process.env.KEY}} and stores the value in the collection's .env,
+// which is the only .env Bruno reads.
+type brunoTarget struct {
+	collection string
+	env        bruno.Environment
+	dotenvPath string
+}
+
+const newEnvironment = "\x00new"
+
+func prepareBruno(cwd string, o options) (*brunoTarget, error) {
+	collection, err := bruno.FindCollection(cwd, o.dir)
+	if err != nil {
+		return nil, err
+	}
+	env, err := chooseEnvironment(cwd, collection, o.environment)
+	if err != nil {
+		return nil, err
+	}
+	return &brunoTarget{
+		collection: collection,
+		env:        env,
+		dotenvPath: filepath.Join(collection, ".env"),
+	}, nil
+}
+
+func chooseEnvironment(cwd, collection, flagValue string) (bruno.Environment, error) {
+	if flagValue != "" {
+		if !bruno.ValidEnvironmentName(flagValue) {
+			return bruno.Environment{}, fmt.Errorf("nombre de environment no válido: %q", flagValue)
+		}
+		return bruno.Environment{Name: flagValue, Path: bruno.EnvironmentPath(collection, flagValue)}, nil
+	}
+
+	envs, err := bruno.ListEnvironments(collection)
+	if err != nil {
+		return bruno.Environment{}, err
+	}
+	choice := newEnvironment
+	if len(envs) > 0 {
+		choices := make([]ui.Choice, 0, len(envs)+1)
+		for _, e := range envs {
+			choices = append(choices, ui.Choice{Label: e.Name, Value: e.Name, Hint: rel(cwd, e.Path)})
+		}
+		choices = append(choices, ui.Choice{Label: "+ Crear environment nuevo", Value: newEnvironment})
+		choice, err = ui.Select("Environment de Bruno",
+			"Environment donde declarar las variables. Los valores irán a "+rel(cwd, filepath.Join(collection, ".env"))+".",
+			choices, envs[0].Name)
+		if err != nil {
+			return bruno.Environment{}, err
+		}
+	}
+	if choice != newEnvironment {
+		return bruno.Environment{Name: choice, Path: bruno.EnvironmentPath(collection, choice)}, nil
+	}
+
+	name, err := ui.Input("Nuevo environment",
+		"Se creará "+rel(cwd, bruno.EnvironmentPath(collection, "<nombre>")), "local",
+		func(s string) error {
+			switch {
+			case !bruno.ValidEnvironmentName(s):
+				return errors.New("usa letras, números, espacios, '.', '-' o '_'")
+			case exists(bruno.EnvironmentPath(collection, s)):
+				return errors.New("ya existe un environment con ese nombre")
+			}
+			return nil
+		})
+	if err != nil {
+		return bruno.Environment{}, err
+	}
+	return bruno.Environment{Name: name, Path: bruno.EnvironmentPath(collection, name)}, nil
+}
+
+func (t *brunoTarget) describe(cwd string) string {
+	return fmt.Sprintf("environment %q (%s)", t.env.Name, rel(cwd, t.collection))
+}
+
+func (t *brunoTarget) apply(inj *injection) error {
+	envData, err := os.ReadFile(t.env.Path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	bru := bruno.ParseEnv(envData)
+	dot, err := dotenv.Load(t.dotenvPath)
+	if err != nil {
+		return err
+	}
+
+	refs := map[string]string{}
+	secretVars := bru.Secrets()
+	for k := range inj.vars {
+		if slices.Contains(secretVars, k) {
+			warn("%s ya es una variable secreta de Bruno en %s; quítala de vars:secret para usar el valor de AWS",
+				k, t.env.Name)
+			continue
+		}
+		refs[k] = bruno.ProcessEnvRef(k)
+	}
+
+	envChanges := dotenv.Diff(bru.Lookup, refs)
+	dotChanges := dot.Diff(inj.vars)
+	envLabel := rel(inj.cwd, t.env.Path)
+	if envData == nil {
+		envLabel += " (nuevo)"
+	}
+	write, err := inj.review([]ui.Section{
+		section(envLabel, envChanges, refs, false),
+		section(rel(inj.cwd, t.dotenvPath), dotChanges, inj.vars, true),
+	})
+	if err != nil || (!write && inj.dryRun) {
+		return err
+	}
+	if !write {
+		return checkGitignore(inj.cwd, t.dotenvPath, inj.yes)
+	}
+
+	dot.Merge(inj.vars, inj.header())
+	if err := fsutil.WriteFile(t.dotenvPath, dot.Bytes(), 0o600); err != nil {
+		return err
+	}
+	bru.SetVars(refs)
+	if err := fsutil.WriteFile(t.env.Path, bru.Bytes(), 0o644); err != nil {
+		return err
+	}
+	say(fmt.Sprintf("%s %s: %s · %s: %s", okStyle.Render("✔"),
+		rel(inj.cwd, t.env.Path), countChanges(envChanges),
+		rel(inj.cwd, t.dotenvPath), countChanges(dotChanges)))
+	say(dimStyle.Render("  Si Bruno está abierto, recarga la colección para ver los cambios."))
+
+	return checkGitignore(inj.cwd, t.dotenvPath, inj.yes)
+}
