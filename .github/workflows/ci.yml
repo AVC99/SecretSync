@@ -1,8 +1,8 @@
 name: ci
 
+# Runs on every PR (dev → main, or into dev). Pushes to an open PR's branch
+# re-run it; there is no separate push trigger so checks are not duplicated.
 on:
-  push:
-    branches: [dev]
   pull_request:
     branches: [main, dev]
 

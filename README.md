@@ -153,7 +153,7 @@ Para probar sin AWS real puedes apuntar el SDK a un endpoint local con `AWS_ENDP
 
 Se trabaja en `dev` y se integra en `main` con un pull request:
 
-1. Push a `dev` o PR a `main`/`dev` → workflow `ci`: `go vet` y `go test` en Linux, macOS y Windows, y un `goreleaser` en modo snapshot para comprobar que la release se puede generar.
+1. PR a `main` o `dev` (y cada push a la rama del PR) → workflow `ci`: `go vet` y `go test` en Linux, macOS y Windows, y un `goreleaser` en modo snapshot para comprobar que la release se puede generar.
 2. Merge del PR en `main` → workflow `release`: vuelve a pasar los tests, calcula la versión siguiente, crea el tag y ejecuta GoReleaser, que publica la Release (binarios y `checksums.txt`) y actualiza el cask en [AVC99/homebrew-tap](https://github.com/AVC99/homebrew-tap).
 
 La versión sale de las etiquetas del PR:
