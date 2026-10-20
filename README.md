@@ -105,6 +105,17 @@ When it exits, a summary of what was done stays printed in the terminal.
 - Variables in `vars:secret [ ]` cannot be filled from outside (Bruno encrypts them locally); if a secret matches one of them you get a warning and the `.bru` is not changed for it.
 - If Bruno is open, reload the collection to see the changes.
 
+#### Where do the values come from?
+
+Everything stays on your machine:
+
+- The `.bru` file only stores references (`API_KEY: {{process.env.API_KEY}}`), so it is safe to commit and share.
+- The values live in `bruno/.env` on each machine (`0600`, git-ignored). Every teammate runs `secretsync` to get their own; secrets never go through the repo.
+- Bruno reads `bruno/.env` when the collection is opened or the file changes. A variable that is not in it is taken from the environment of the Bruno process itself; if both define it, `.env` wins.
+- Bruno does not call AWS when sending requests: after a secret is rotated in Secrets Manager, run `secretsync` again.
+- On macOS, Bruno launched from the Dock or Spotlight does not see variables exported in `~/.zshrc`, so keep the values in `bruno/.env`.
+- In CI with `bru run`, generate the file first (`secretsync --mode bruno --environment ci --profile … --secret … --yes`) or export the variables in the job.
+
 ### .env mode
 
 - Only keys present in the template are filled (names are compared case-insensitively). Secret keys that are not in the template are ignored and listed.
