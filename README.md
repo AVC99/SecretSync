@@ -101,21 +101,45 @@ secretsync --mode env --profile dev --secret myapp/dev --secret myapp/token --ye
 
 ## Instalación
 
-Requiere Go 1.26+ para compilar (los binarios no necesitan Go).
+**macOS / Linux con Homebrew**
 
 ```sh
-make install        # instala en $GOBIN / ~/go/bin y explica cómo añadirlo al PATH en cada plataforma
-make build          # ./secretsync
-make dist           # binarios en dist/ para darwin|linux|windows × amd64|arm64
+brew install AVC99/tap/secretsync
+brew upgrade secretsync   # actualizar
 ```
 
-En Windows normalmente no hay `make`: usa `go install .` y añade `%USERPROFILE%\go\bin` al PATH del usuario desde PowerShell (y abre una terminal nueva):
+**macOS / Linux sin Homebrew**: descarga la última versión de GitHub Releases, comprueba el checksum y la deja en `/usr/local/bin` (o `~/.local/bin` si no tienes permiso). Para actualizar, vuelve a ejecutarlo.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/AVC99/secretsync/main/install.sh | sh
+# versión o directorio concretos:
+curl -fsSL https://raw.githubusercontent.com/AVC99/secretsync/main/install.sh | VERSION=v0.1.0 INSTALL_DIR=~/bin sh
+```
+
+**Con Go (cualquier plataforma, incluido Windows)**: requiere Go 1.26+.
+
+```sh
+go install github.com/AVC99/secretsync@latest
+```
+
+El binario queda en `$(go env GOPATH)/bin`; si no está en el PATH, en Windows añádelo desde PowerShell (y abre una terminal nueva):
 
 ```powershell
 [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + (go env GOPATH) + '\bin', 'User')
 ```
 
-Los binarios son estáticos (`CGO_ENABLED=0`): copia el de tu plataforma a algún directorio de tu `PATH` (en Windows, `secretsync-windows-amd64.exe` → `secretsync.exe`). La UI (tview/tcell) funciona en Terminal/iTerm, terminales Linux y Windows Terminal/PowerShell. También hay `.goreleaser.yaml` para publicar releases.
+**Descarga manual**: en [Releases](https://github.com/AVC99/secretsync/releases) hay un `.tar.gz` (macOS/Linux) o `.zip` (Windows) por plataforma; descomprime y copia `secretsync` a un directorio del PATH. Los binarios son estáticos (`CGO_ENABLED=0`).
+
+La UI (tview/tcell) funciona en Terminal/iTerm, terminales Linux y Windows Terminal/PowerShell.
+
+### Desde el código
+
+```sh
+make install        # instala en $GOBIN / ~/go/bin y explica cómo añadirlo al PATH en cada plataforma
+make build          # ./secretsync
+make dist           # binarios en dist/ para darwin|linux|windows × amd64|arm64
+make snapshot       # release completa en dist/ (archivos, checksums, cask) sin publicar; requiere goreleaser
+```
 
 ## Desarrollo
 
@@ -124,3 +148,12 @@ make test
 ```
 
 Para probar sin AWS real puedes apuntar el SDK a un endpoint local con `AWS_ENDPOINT_URL_SECRETS_MANAGER=http://127.0.0.1:4566` (LocalStack, por ejemplo).
+
+## Publicar una versión
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+El workflow `release` ejecuta los tests y GoReleaser, que crea la Release con los binarios y `checksums.txt` y actualiza el cask en [AVC99/homebrew-tap](https://github.com/AVC99/homebrew-tap). Necesita el secret `TAP_DEPLOY_KEY` en este repo: la clave privada de una deploy key con escritura en `homebrew-tap`.

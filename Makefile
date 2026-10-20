@@ -9,7 +9,7 @@ ifeq ($(GOBIN_DIR),)
 GOBIN_DIR := $(firstword $(subst :, ,$(shell go env GOPATH)))/bin
 endif
 
-.PHONY: build test install dist clean
+.PHONY: build test install dist snapshot clean
 
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $(BINARY) .
@@ -45,6 +45,11 @@ dist:
 		echo "-> $$out"; \
 		CGO_ENABLED=0 GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags "$(LDFLAGS)" -o $$out . || exit 1; \
 	done
+
+# Builds a full release (archives, checksums, Homebrew cask) into dist/
+# without publishing anything. Requires goreleaser.
+snapshot:
+	TAP_DEPLOY_KEY=unused goreleaser release --snapshot --clean
 
 clean:
 	rm -rf dist $(BINARY) $(BINARY).exe

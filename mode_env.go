@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"secretsync/internal/dotenv"
-	"secretsync/internal/fsutil"
-	"secretsync/internal/ui"
+	"github.com/AVC99/secretsync/internal/dotenv"
+	"github.com/AVC99/secretsync/internal/fsutil"
+	"github.com/AVC99/secretsync/internal/ui"
 )
 
 // templateNames are the file names recognized as .env templates, in order of preference.

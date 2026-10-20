@@ -1,15 +1,50 @@
 version: 2
 project_name: secretsync
+
 builds:
-  - env: [CGO_ENABLED=0]
+  - binary: secretsync
+    env: [CGO_ENABLED=0]
     flags: [-trimpath]
     ldflags: ["-s -w -X main.version={{.Version}}"]
     goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
+
 archives:
-  - formats: [tar.gz]
+  # No version in the name so releases/latest/download/<asset> is stable
+  # (install.sh relies on it).
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
     format_overrides:
       - goos: windows
         formats: [zip]
+    files: [README.md]
+
 checksum:
   name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ["^docs:", "^test:", "^ci:"]
+
+homebrew_casks:
+  - name: secretsync
+    repository:
+      owner: AVC99
+      name: homebrew-tap
+      # Pushed over SSH with a deploy key, so no personal token is needed.
+      git:
+        url: git@github.com:AVC99/homebrew-tap.git
+        private_key: "{{ .Env.TAP_DEPLOY_KEY }}"
+    homepage: https://github.com/AVC99/secretsync
+    description: Inyecta secretos de AWS Secrets Manager en Bruno o en un .env
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    hooks:
+      post:
+        # The binary is not signed; without this Gatekeeper refuses to run it.
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/secretsync"]
+          end

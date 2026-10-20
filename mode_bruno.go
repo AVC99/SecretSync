@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"slices"
 
-	"secretsync/internal/bruno"
-	"secretsync/internal/dotenv"
-	"secretsync/internal/fsutil"
-	"secretsync/internal/ui"
+	"github.com/AVC99/secretsync/internal/bruno"
+	"github.com/AVC99/secretsync/internal/dotenv"
+	"github.com/AVC99/secretsync/internal/fsutil"
+	"github.com/AVC99/secretsync/internal/ui"
 )
 
 // brunoTarget declares each key in a Bruno environment as

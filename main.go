@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"slices"
 	"sort"
 	"strings"
@@ -20,14 +21,26 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/charmbracelet/lipgloss"
 
-	"secretsync/internal/awsprofiles"
-	"secretsync/internal/dotenv"
-	"secretsync/internal/secrets"
-	"secretsync/internal/ui"
+	"github.com/AVC99/secretsync/internal/awsprofiles"
+	"github.com/AVC99/secretsync/internal/dotenv"
+	"github.com/AVC99/secretsync/internal/secrets"
+	"github.com/AVC99/secretsync/internal/ui"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
 var version = "dev"
+
+// buildVersion returns version, falling back to the module version recorded
+// by `go install …@vX.Y.Z`, which does not pass -ldflags.
+func buildVersion() string {
+	if version != "dev" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return bi.Main.Version
+	}
+	return version
+}
 
 // Styles for the plain-text output printed to the terminal (directly in
 // non-interactive runs, or after the UI closes).
@@ -172,7 +185,7 @@ Flags:
 func run() error {
 	o := parseFlags()
 	if o.version {
-		fmt.Println("secretsync", version)
+		fmt.Println("secretsync", buildVersion())
 		return nil
 	}
 

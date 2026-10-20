@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"secretsync/internal/dotenv"
+	"github.com/AVC99/secretsync/internal/dotenv"
 )
 
 const template = `# API

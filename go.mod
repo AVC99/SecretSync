@@ -1,4 +1,4 @@
-module secretsync
+module github.com/AVC99/secretsync
 
 go 1.26.0
 
