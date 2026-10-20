@@ -83,7 +83,7 @@ func TestCollect(t *testing.T) {
 
 func TestMask(t *testing.T) {
 	for in, want := range map[string]string{
-		"":          "(vacío)",
+		"":          "(empty)",
 		"abcd":      "****",
 		"abcde":     "ab****",
 		"ñandú1234": "ña****",

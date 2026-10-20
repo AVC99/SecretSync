@@ -22,10 +22,10 @@ import (
 )
 
 // ErrAborted is returned when the user cancels (Esc / Ctrl+C).
-var ErrAborted = errors.New("cancelado por el usuario")
+var ErrAborted = errors.New("cancelled by the user")
 
 // ErrNoTTY is returned when a prompt is needed but stdin is not a terminal.
-var ErrNoTTY = errors.New("se necesita una terminal interactiva (o pasa --mode, --profile, --secret y --yes)")
+var ErrNoTTY = errors.New("an interactive terminal is required (or pass --mode, --profile, --secret and --yes)")
 
 // Regions offered when the profile does not define one.
 var Regions = []string{
@@ -249,7 +249,7 @@ func (t *tui) renderHeader() {
 
 	var b strings.Builder
 	b.WriteString(tagAccent + tagBold + "secretsync" + tagReset)
-	b.WriteString(tagMuted + "  secretos de AWS Secrets Manager → Bruno / .env" + tagReset + "\n")
+	b.WriteString(tagMuted + "  AWS Secrets Manager secrets → Bruno / .env" + tagReset + "\n")
 	for i, st := range s {
 		if i > 0 {
 			b.WriteString(tagMuted + "  ›  " + tagReset)
@@ -344,9 +344,9 @@ func Loading(msg string) {
 	if t == nil {
 		return
 	}
-	p := panel("Un momento")
+	p := panel("One moment")
 	p.AddItem(text(tagYellow+"● "+tagReset+tview.Escape(msg)), 0, 1, false)
-	t.show(p, p, keyHelp("ctrl+c", "cancelar"), panelChrome+1)
+	t.show(p, p, keyHelp("ctrl+c", "cancel"), panelChrome+1)
 }
 
 // Select asks the user to pick one of choices. def is preselected.
@@ -357,7 +357,7 @@ func Select(title, description string, choices []Choice, def string) (string, er
 	}
 	res := make(chan []string, 1)
 	p := newPicker(title, description, choices, false, def, func(v []string) { res <- v }, t.cancel)
-	t.show(p.box, p.filter, keyHelp("↑↓", "mover", "enter", "elegir", "escribe", "para filtrar", "esc", "cancelar"), p.height())
+	t.show(p.box, p.filter, keyHelp("↑↓", "move", "enter", "select", "type", "to filter", "esc", "cancel"), p.height())
 	v, err := await(t, res)
 	if err != nil {
 		return "", err
@@ -373,7 +373,7 @@ func MultiSelect(title, description string, choices []Choice) ([]string, error) 
 	}
 	res := make(chan []string, 1)
 	p := newPicker(title, description, choices, true, "", func(v []string) { res <- v }, t.cancel)
-	t.show(p.box, p.filter, keyHelp("↑↓", "mover", "espacio", "marcar", "ctrl+a", "todos", "enter", "continuar", "esc", "cancelar"), p.height())
+	t.show(p.box, p.filter, keyHelp("↑↓", "move", "space", "mark", "ctrl+a", "all", "enter", "continue", "esc", "cancel"), p.height())
 	return await(t, res)
 }
 
@@ -413,7 +413,7 @@ func Input(title, description, def string, validate func(string) error) (string,
 		height += 2
 	}
 	p.AddItem(field, 1, 0, true).AddItem(nil, 1, 0, false).AddItem(msg, 0, 1, false)
-	t.show(p, field, keyHelp("enter", "aceptar", "esc", "cancelar"), height)
+	t.show(p, field, keyHelp("enter", "accept", "esc", "cancel"), height)
 	return await(t, res)
 }
 
@@ -424,7 +424,7 @@ func Confirm(title, question string, def bool) (bool, error) {
 		return false, err
 	}
 	res := make(chan bool, 1)
-	form := buttons([]string{"Sí", "No"}, func(i int) { res <- i == 0 }, t.cancel)
+	form := buttons([]string{"Yes", "No"}, func(i int) { res <- i == 0 }, t.cancel)
 	if !def {
 		form.SetFocus(1)
 	}
@@ -441,7 +441,7 @@ func Confirm(title, question string, def bool) (bool, error) {
 	}))
 	p := panel(title)
 	p.AddItem(text(tview.Escape(question)), 0, 1, false).AddItem(form, 2, 0, true)
-	t.show(p, form, keyHelp("←→", "elegir", "enter", "aceptar", "s/n", "sí/no", "esc", "cancelar"),
+	t.show(p, form, keyHelp("←→", "choose", "enter", "accept", "y/n", "yes/no", "esc", "cancel"),
 		panelChrome+lines(question)+2)
 	return await(t, res)
 }
@@ -495,10 +495,10 @@ type Section struct {
 
 // ReviewData is what the review screen shows.
 type ReviewData struct {
-	Status   string // optional banner, e.g. "Todo está al día"
+	Status   string // optional banner, e.g. "Everything is up to date"
 	Sections []Section
 	Warnings []string
-	CanWrite bool // show "Escribir"/"Cancelar" instead of "Cerrar"
+	CanWrite bool // show "Write"/"Cancel" instead of "Close"
 }
 
 // Review shows the pending changes. It returns true if the user chose to
@@ -511,9 +511,9 @@ func Review(d ReviewData) (bool, error) {
 	content := renderReview(d)
 	tv := text(content)
 	tv.SetScrollable(true)
-	labels := []string{"Cerrar"}
+	labels := []string{"Close"}
 	if d.CanWrite {
-		labels = []string{"Escribir cambios", "Cancelar"}
+		labels = []string{"Write changes", "Cancel"}
 	}
 	res := make(chan bool, 1)
 	form := buttons(labels, func(i int) { res <- d.CanWrite && i == 0 }, t.cancel)
@@ -536,11 +536,11 @@ func Review(d ReviewData) (bool, error) {
 		}
 		return nil
 	}))
-	p := panel("Revisión de cambios")
+	p := panel("Review changes")
 	p.AddItem(tv, 0, 1, false).AddItem(form, 2, 0, true)
-	help := keyHelp("↑↓", "desplazar", "←→", "elegir", "enter", "aceptar", "esc", "cancelar")
+	help := keyHelp("↑↓", "scroll", "←→", "choose", "enter", "accept", "esc", "cancel")
 	if !d.CanWrite {
-		help = keyHelp("↑↓", "desplazar", "enter", "cerrar")
+		help = keyHelp("↑↓", "scroll", "enter", "close")
 	}
 	t.show(p, form, help, panelChrome+lines(content)+2)
 	return await(t, res)
@@ -566,12 +566,12 @@ func renderReview(d ReviewData) string {
 			case '~':
 				sign = tagYellow + "~"
 			case '=':
-				sign, value = tagMuted+"=", "sin cambios"
+				sign, value = tagMuted+"=", "unchanged"
 			}
 			fmt.Fprintf(&b, "  %s%s %-*s  %s%s%s\n", sign, tagReset, width, tview.Escape(c.Key), tagMuted, value, tagReset)
 		}
 		if len(s.Changes) == 0 {
-			b.WriteString(tagMuted + "  (nada que escribir)" + tagReset + "\n")
+			b.WriteString(tagMuted + "  (nothing to write)" + tagReset + "\n")
 		}
 		for _, n := range s.Notes {
 			b.WriteString(tagMuted + "  " + tview.Escape(n) + tagReset + "\n")
@@ -592,7 +592,7 @@ func SelectProfile(profiles []string, def string) (string, error) {
 	for i, p := range profiles {
 		choices[i] = Choice{Label: p, Value: p}
 	}
-	return Select("Perfil AWS", "Cuenta desde la que leer los secretos (~/.aws/credentials y ~/.aws/config).", choices, def)
+	return Select("AWS profile", "Account to read the secrets from (~/.aws/credentials and ~/.aws/config).", choices, def)
 }
 
 // SelectRegion asks the user to pick a region.
@@ -601,5 +601,5 @@ func SelectRegion() (string, error) {
 	for i, r := range Regions {
 		choices[i] = Choice{Label: r, Value: r}
 	}
-	return Select("Región AWS", "El perfil no define región.", choices, Regions[0])
+	return Select("AWS region", "The profile does not define a region.", choices, Regions[0])
 }

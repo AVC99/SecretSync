@@ -11,7 +11,7 @@ import (
 const marker = "bruno.json"
 
 // ErrNotFound is returned when no collection could be located.
-var ErrNotFound = errors.New("no se encontró ninguna colección Bruno (se buscó ./bruno/bruno.json o bruno.json en este directorio y sus padres)")
+var ErrNotFound = errors.New("no Bruno collection found (looked for ./bruno/bruno.json or bruno.json in this directory and its parents)")
 
 // FindCollection returns the absolute path of the Bruno collection directory.
 //
@@ -25,7 +25,7 @@ func FindCollection(start, override string) (string, error) {
 			return "", err
 		}
 		if !isFile(filepath.Join(dir, marker)) {
-			return "", fmt.Errorf("%s no es una colección Bruno (falta %s)", dir, marker)
+			return "", fmt.Errorf("%s is not a Bruno collection (missing %s)", dir, marker)
 		}
 		return dir, nil
 	}

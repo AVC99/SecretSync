@@ -1,12 +1,12 @@
 #!/bin/sh
-# Instala secretsync desde GitHub Releases (macOS y Linux).
+# Installs secretsync from GitHub Releases (macOS and Linux).
 #
 #   curl -fsSL https://raw.githubusercontent.com/AVC99/secretsync/main/install.sh | sh
 #
-# Variables opcionales:
-#   VERSION=v0.1.0      versión concreta (por defecto, la última)
-#   INSTALL_DIR=/ruta   dónde dejar el binario (por defecto /usr/local/bin si
-#                       se puede escribir, si no ~/.local/bin)
+# Optional variables:
+#   VERSION=v0.1.0      a specific version (default: the latest)
+#   INSTALL_DIR=/path   where to put the binary (default: /usr/local/bin if
+#                       writable, otherwise ~/.local/bin)
 set -eu
 
 REPO="AVC99/secretsync"
@@ -20,13 +20,13 @@ err() {
 case "$(uname -s)" in
 Darwin) os=darwin ;;
 Linux) os=linux ;;
-*) err "sistema no soportado: $(uname -s). Descarga el binario de https://github.com/$REPO/releases" ;;
+*) err "unsupported OS: $(uname -s). Download the binary from https://github.com/$REPO/releases" ;;
 esac
 
 case "$(uname -m)" in
 x86_64 | amd64) arch=amd64 ;;
 arm64 | aarch64) arch=arm64 ;;
-*) err "arquitectura no soportada: $(uname -m)" ;;
+*) err "unsupported architecture: $(uname -m)" ;;
 esac
 
 if [ -n "${VERSION:-}" ]; then
@@ -40,7 +40,7 @@ if command -v curl >/dev/null 2>&1; then
 elif command -v wget >/dev/null 2>&1; then
 	fetch() { wget -q -O "$2" "$1"; }
 else
-	err "hace falta curl o wget"
+	err "curl or wget is required"
 fi
 
 if command -v sha256sum >/dev/null 2>&1; then
@@ -48,7 +48,7 @@ if command -v sha256sum >/dev/null 2>&1; then
 elif command -v shasum >/dev/null 2>&1; then
 	sha256() { shasum -a 256 "$1" | cut -d' ' -f1; }
 else
-	err "hace falta sha256sum o shasum"
+	err "sha256sum or shasum is required"
 fi
 
 if [ -z "${INSTALL_DIR:-}" ]; then
@@ -63,28 +63,28 @@ asset="${BINARY}_${os}_${arch}.tar.gz"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-echo "Descargando ${asset}…"
-fetch "$base/$asset" "$tmp/$asset" || err "no se pudo descargar $base/$asset"
-fetch "$base/checksums.txt" "$tmp/checksums.txt" || err "no se pudo descargar checksums.txt"
+echo "Downloading ${asset}…"
+fetch "$base/$asset" "$tmp/$asset" || err "could not download $base/$asset"
+fetch "$base/checksums.txt" "$tmp/checksums.txt" || err "could not download checksums.txt"
 
 want="$(awk -v f="$asset" '$2 == f { print $1 }' "$tmp/checksums.txt")"
-[ -n "$want" ] || err "$asset no aparece en checksums.txt"
-[ "$(sha256 "$tmp/$asset")" = "$want" ] || err "el checksum de $asset no coincide"
+[ -n "$want" ] || err "$asset is not listed in checksums.txt"
+[ "$(sha256 "$tmp/$asset")" = "$want" ] || err "checksum mismatch for $asset"
 
 tar -xzf "$tmp/$asset" -C "$tmp" "$BINARY"
 mkdir -p "$INSTALL_DIR"
 mv "$tmp/$BINARY" "$INSTALL_DIR/$BINARY"
 chmod 755 "$INSTALL_DIR/$BINARY"
 
-echo "✔ $("$INSTALL_DIR/$BINARY" --version) instalado en $INSTALL_DIR/$BINARY"
+echo "✔ $("$INSTALL_DIR/$BINARY" --version) installed to $INSTALL_DIR/$BINARY"
 case ":$PATH:" in
 *":$INSTALL_DIR:"*) ;;
 *)
-	echo "  $INSTALL_DIR no está en tu PATH. Añádelo con:"
+	echo "  $INSTALL_DIR is not in your PATH. Add it with:"
 	case "${SHELL:-}" in
 	*/zsh) rc="~/.zshrc" ;;
 	*/bash) rc="~/.bashrc" ;;
-	*) rc="tu fichero de arranque del shell" ;;
+	*) rc="your shell startup file" ;;
 	esac
 	echo "    echo 'export PATH=\"\$PATH:$INSTALL_DIR\"' >> $rc"
 	;;
