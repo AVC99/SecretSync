@@ -21,7 +21,7 @@ type pickerResult struct {
 
 func newTestPicker(multi bool, def string) (*picker, *pickerResult) {
 	r := &pickerResult{}
-	p := newPicker("Fruta", "", fruits, multi, def,
+	p := newPicker("Fruit", "", fruits, multi, def,
 		func(v []string) { r.done = v },
 		func() { r.aborted = true })
 	return p, r
@@ -86,7 +86,7 @@ func TestPickerMultiToggle(t *testing.T) {
 	p.handleKey(key(tcell.KeyDown))
 	p.handleKey(key(tcell.KeyDown))
 	p.handleKey(char(' ')) // cherry
-	if !strings.Contains(p.box.GetTitle(), "2 marcados") {
+	if !strings.Contains(p.box.GetTitle(), "2 marked") {
 		t.Errorf("title = %q", p.box.GetTitle())
 	}
 	p.handleKey(key(tcell.KeyEnter))
@@ -127,7 +127,7 @@ func TestPickerHeight(t *testing.T) {
 	if got, want := p.height(), panelChrome+2+len(fruits); got != want {
 		t.Errorf("height = %d, want %d", got, want)
 	}
-	withDesc := newPicker("x", "descripción", fruits, false, "", func([]string) {}, func() {})
+	withDesc := newPicker("x", "description", fruits, false, "", func([]string) {}, func() {})
 	if got, want := withDesc.height(), panelChrome+4+len(fruits); got != want {
 		t.Errorf("height with description = %d, want %d", got, want)
 	}
@@ -135,19 +135,19 @@ func TestPickerHeight(t *testing.T) {
 
 func TestRenderReview(t *testing.T) {
 	out := renderReview(ReviewData{
-		Status: "Todo está al día",
+		Status: "Everything is up to date",
 		Sections: []Section{
 			{Title: ".env", Changes: []Change{
 				{Sign: '+', Key: "NEW", Value: "ab****"},
 				{Sign: '~', Key: "UPDATED", Value: "cd****"},
 				{Sign: '=', Key: "SAME", Value: "secret"},
-			}, Notes: []string{"una nota"}},
-			{Title: "vacío.env"},
+			}, Notes: []string{"a note"}},
+			{Title: "empty.env"},
 		},
-		Warnings: []string{"cuidado [rojo]"},
+		Warnings: []string{"careful [red]"},
 	})
-	for _, want := range []string{"Todo está al día", "NEW", "ab****", "UPDATED", "sin cambios",
-		"una nota", "(nada que escribir)", "cuidado [rojo[]"} {
+	for _, want := range []string{"Everything is up to date", "NEW", "ab****", "UPDATED", "unchanged",
+		"a note", "(nothing to write)", "careful [red[]"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("review missing %q:\n%s", want, out)
 		}

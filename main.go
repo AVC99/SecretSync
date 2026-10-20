@@ -112,11 +112,11 @@ func (inj *injection) review(sections []ui.Section) (bool, error) {
 	var status string
 	switch {
 	case inj.dryRun:
-		say(dimStyle.Render("--dry-run: no se ha escrito nada."))
-		status = "Simulación (--dry-run): no se escribirá nada"
+		say(dimStyle.Render("--dry-run: nothing was written."))
+		status = "Dry run (--dry-run): nothing will be written"
 	case !changed:
-		say(okStyle.Render("✔") + " Todo está al día.")
-		status = "Todo está al día"
+		say(okStyle.Render("✔") + " Everything is up to date.")
+		status = "Everything is up to date"
 	case inj.yes:
 		return true, nil
 	default:
@@ -140,7 +140,7 @@ func main() {
 	ui.Close()
 	if err != nil {
 		if errors.Is(err, ui.ErrAborted) || errors.Is(err, context.Canceled) {
-			fmt.Fprintln(os.Stderr, "Cancelado.")
+			fmt.Fprintln(os.Stderr, "Cancelled.")
 			os.Exit(130)
 		}
 		fmt.Fprintln(os.Stderr, warnStyle.Render("error:"), err)
@@ -150,29 +150,29 @@ func main() {
 
 func parseFlags() options {
 	var o options
-	flag.StringVar(&o.mode, "mode", "", "modo sin menú: bruno | env (para scripts)")
-	flag.StringVar(&o.profile, "profile", "", "perfil AWS (si no, se pregunta)")
-	flag.StringVar(&o.region, "region", "", "región AWS (por defecto la del perfil)")
-	flag.StringVar(&o.filter, "filter", "", "filtra la lista de secretos por nombre o descripción")
-	flag.Var(&o.secrets, "secret", "secreto a inyectar, repetible (omite la selección interactiva)")
-	flag.StringVar(&o.dir, "dir", "", "[bruno] ruta de la colección (por defecto ./bruno, buscando hacia arriba)")
-	flag.StringVar(&o.environment, "environment", "", "[bruno] environment de Bruno (se crea si no existe)")
-	flag.StringVar(&o.template, "template", "", "[env] plantilla (por defecto .env.example, .env.template… del directorio actual)")
-	flag.StringVar(&o.envFile, "env-file", "", "[env] .env destino (por defecto .env junto a la plantilla)")
-	flag.BoolVar(&o.dryRun, "dry-run", false, "muestra los cambios sin escribir nada")
-	flag.BoolVar(&o.yes, "yes", false, "no pedir confirmación")
-	flag.BoolVar(&o.version, "version", false, "muestra la versión")
+	flag.StringVar(&o.mode, "mode", "", "skip the menu: bruno | env (for scripts)")
+	flag.StringVar(&o.profile, "profile", "", "AWS profile (asked if omitted)")
+	flag.StringVar(&o.region, "region", "", "AWS region (defaults to the profile's)")
+	flag.StringVar(&o.filter, "filter", "", "filter the secret list by name or description")
+	flag.Var(&o.secrets, "secret", "secret to inject; repeatable (skips the interactive selection)")
+	flag.StringVar(&o.dir, "dir", "", "[bruno] collection path (default ./bruno, searching upwards)")
+	flag.StringVar(&o.environment, "environment", "", "[bruno] Bruno environment (created if missing)")
+	flag.StringVar(&o.template, "template", "", "[env] template (default .env.example, .env.template… in the current directory)")
+	flag.StringVar(&o.envFile, "env-file", "", "[env] target .env (default .env next to the template)")
+	flag.BoolVar(&o.dryRun, "dry-run", false, "show the changes without writing anything")
+	flag.BoolVar(&o.yes, "yes", false, "do not ask for confirmation")
+	flag.BoolVar(&o.version, "version", false, "print the version")
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), `secretsync — inyecta secretos de AWS Secrets Manager en Bruno o en un .env
+		fmt.Fprintf(flag.CommandLine.Output(), `secretsync — inject AWS Secrets Manager secrets into Bruno or a .env file
 
-Uso:
+Usage:
   secretsync [flags]
 
-Al arrancar pregunta qué quieres hacer:
-  Bruno  elige un environment de bruno/environments/; cada clave se declara
-         como CLAVE: {{process.env.CLAVE}} y el valor va a bruno/.env.
-  .env   rellena .env con las claves de .env.example (o .env.template…)
-         usando los valores de los secretos.
+On start it asks what you want to do:
+  Bruno  pick an environment in bruno/environments/; each key is declared
+         as KEY: {{process.env.KEY}} and its value goes to bruno/.env.
+  .env   fill .env with the keys of .env.example (or .env.template…)
+         using the secret values.
 
 Flags:
 `)
@@ -207,56 +207,56 @@ func run() error {
 	var t target
 	switch mode {
 	case modeBruno:
-		ui.SetStep("Modo", "Bruno")
+		ui.SetStep("Mode", "Bruno")
 		t, err = prepareBruno(cwd, o)
 	case modeEnv:
-		ui.SetStep("Modo", ".env")
+		ui.SetStep("Mode", ".env")
 		t, err = prepareEnv(cwd, o)
 	}
 	if err != nil {
 		return err
 	}
-	ui.SetStep("Destino", t.describe(cwd))
+	ui.SetStep("Target", t.describe(cwd))
 
 	profile, err := chooseProfile(o.profile)
 	if err != nil {
 		return err
 	}
-	ui.SetStep("Perfil", profile)
+	ui.SetStep("Profile", profile)
 	region, err := chooseRegion(o.region, profile)
 	if err != nil {
 		return err
 	}
-	ui.SetStep("Región", region)
-	say(fmt.Sprintf("%s perfil %s · región %s · destino %s",
+	ui.SetStep("Region", region)
+	say(fmt.Sprintf("%s profile %s · region %s · target %s",
 		dimStyle.Render("›"), profile, region, t.describe(cwd)))
 
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithSharedConfigProfile(profile),
 		config.WithRegion(region))
 	if err != nil {
-		return fmt.Errorf("cargando configuración AWS del perfil %q: %w", profile, err)
+		return fmt.Errorf("loading AWS config for profile %q: %w", profile, err)
 	}
 	client := secretsmanager.NewFromConfig(cfg)
 
 	names := []string(o.secrets)
 	if len(names) == 0 {
-		ui.Loading(fmt.Sprintf("Listando secretos (perfil %s, región %s)…", profile, region))
+		ui.Loading(fmt.Sprintf("Listing secrets (profile %s, region %s)…", profile, region))
 		list, err := secrets.List(ctx, client, o.filter)
 		if err != nil {
-			return fmt.Errorf("listando secretos (perfil %s, región %s): %w", profile, region, err)
+			return fmt.Errorf("listing secrets (profile %s, region %s): %w", profile, region, err)
 		}
 		if len(list) == 0 {
 			if o.filter != "" {
-				return fmt.Errorf("ningún secreto coincide con %q en %s", o.filter, region)
+				return fmt.Errorf("no secret matches %q in %s", o.filter, region)
 			}
-			return fmt.Errorf("no hay secretos en la cuenta del perfil %s en %s", profile, region)
+			return fmt.Errorf("no secrets in the account of profile %s in %s", profile, region)
 		}
 		choices := make([]ui.Choice, len(list))
 		for i, s := range list {
 			choices[i] = ui.Choice{Label: s.Name, Value: s.Name, Hint: s.Description}
 		}
-		names, err = ui.MultiSelect("Secretos", "Marca los secretos a inyectar. Cada clave JSON se convierte en una variable.", choices)
+		names, err = ui.MultiSelect("Secrets", "Mark the secrets to inject. Each JSON key becomes a variable.", choices)
 		if err != nil {
 			return err
 		}
@@ -265,15 +265,15 @@ func run() error {
 	if len(names) > 1 {
 		secretsStep += fmt.Sprintf(" +%d", len(names)-1)
 	}
-	ui.SetStep("Secretos", secretsStep)
+	ui.SetStep("Secrets", secretsStep)
 
-	ui.Loading(fmt.Sprintf("Leyendo %d secreto(s)…", len(names)))
+	ui.Loading(fmt.Sprintf("Reading %d secret(s)…", len(names)))
 	vars, err := collect(ctx, client, names)
 	if err != nil {
 		return err
 	}
 	if len(vars) == 0 {
-		return errors.New("los secretos seleccionados no contienen claves utilizables")
+		return errors.New("the selected secrets contain no usable keys")
 	}
 
 	return t.apply(&injection{
@@ -289,12 +289,12 @@ func chooseMode(flagValue string) (string, error) {
 		return flagValue, nil
 	case "":
 	default:
-		return "", fmt.Errorf("--mode debe ser %q o %q", modeBruno, modeEnv)
+		return "", fmt.Errorf("--mode must be %q or %q", modeBruno, modeEnv)
 	}
-	return ui.Select("¿Qué quieres hacer?", "", []ui.Choice{
-		{Label: "Inyectar secretos en un environment de Bruno", Value: modeBruno,
-			Hint: "CLAVE: {{process.env.CLAVE}} en el .bru + valor en bruno/.env"},
-		{Label: "Rellenar .env a partir de la plantilla", Value: modeEnv,
+	return ui.Select("What do you want to do?", "", []ui.Choice{
+		{Label: "Inject secrets into a Bruno environment", Value: modeBruno,
+			Hint: "KEY: {{process.env.KEY}} in the .bru + value in bruno/.env"},
+		{Label: "Fill .env from its template", Value: modeEnv,
 			Hint: ".env.example → .env"},
 	}, modeBruno)
 }
@@ -305,11 +305,11 @@ func chooseProfile(flagValue string) (string, error) {
 	}
 	profiles, err := awsprofiles.List()
 	if err != nil {
-		return "", fmt.Errorf("leyendo perfiles AWS: %w", err)
+		return "", fmt.Errorf("reading AWS profiles: %w", err)
 	}
 	switch len(profiles) {
 	case 0:
-		return "", fmt.Errorf("no hay perfiles en %s ni en %s", awsprofiles.CredentialsFile(), awsprofiles.ConfigFile())
+		return "", fmt.Errorf("no profiles in %s or %s", awsprofiles.CredentialsFile(), awsprofiles.ConfigFile())
 	case 1:
 		return profiles[0], nil
 	}
@@ -345,7 +345,7 @@ func collect(ctx context.Context, api secrets.API, names []string) (map[string]s
 	for _, name := range names {
 		value, err := secrets.Get(ctx, api, name)
 		if err != nil {
-			return nil, fmt.Errorf("leyendo secreto %q: %w", name, err)
+			return nil, fmt.Errorf("reading secret %q: %w", name, err)
 		}
 		flat := secrets.Flatten(name, value)
 		keys := make([]string, 0, len(flat))
@@ -355,11 +355,11 @@ func collect(ctx context.Context, api secrets.API, names []string) (map[string]s
 		sort.Strings(keys)
 		for _, k := range keys {
 			if !dotenv.ValidKey(k) {
-				warn("se ignora la clave %q de %s: nombre de variable no válido", k, name)
+				warn("ignoring key %q of %s: not a valid variable name", k, name)
 				continue
 			}
 			if prev, ok := source[k]; ok && prev != name {
-				warn("%s aparece en %s y en %s; se usa el valor de %s", k, prev, name, name)
+				warn("%s is in both %s and %s; using the value from %s", k, prev, name, name)
 			}
 			vars[k] = flat[k]
 			source[k] = name
@@ -402,7 +402,7 @@ func printSection(s ui.Section) {
 		case '~':
 			style = updatedStyle
 		case '=':
-			style, value = dimStyle, "sin cambios"
+			style, value = dimStyle, "unchanged"
 		}
 		say(fmt.Sprintf("  %s %-*s %s", style.Render(string(c.Sign)), width, c.Key, dimStyle.Render(value)))
 	}
@@ -412,7 +412,7 @@ func printSection(s ui.Section) {
 }
 
 func countChanges(c dotenv.Changes) string {
-	return fmt.Sprintf("%d nuevas, %d actualizadas", len(c.Added), len(c.Updated))
+	return fmt.Sprintf("%d added, %d updated", len(c.Added), len(c.Updated))
 }
 
 // checkGitignore warns when a secrets file could end up committed and
@@ -425,7 +425,7 @@ func checkGitignore(cwd, path string, assumeYes bool) error {
 	dir, base := filepath.Dir(path), filepath.Base(path)
 
 	if exec.Command("git", "-C", dir, "ls-files", "--error-unmatch", base).Run() == nil {
-		warn("%s está versionado en git. Sácalo del repo con: git rm --cached %s", base, path)
+		warn("%s is tracked by git. Remove it from the repo with: git rm --cached %s", base, path)
 		return nil
 	}
 	err := exec.Command("git", "-C", dir, "check-ignore", "-q", base).Run()
@@ -436,13 +436,13 @@ func checkGitignore(cwd, path string, assumeYes bool) error {
 	}
 
 	gitignore := filepath.Join(dir, ".gitignore")
-	warn("%s no está en .gitignore: podrías commitear secretos", base)
+	warn("%s is not in .gitignore: you could commit secrets", base)
 	add := assumeYes
 	if !add {
 		if !ui.Interactive() {
 			return nil
 		}
-		question := fmt.Sprintf("%s no está ignorado por git y contiene secretos.\n\n¿Añadir %s a %s?",
+		question := fmt.Sprintf("%s is not ignored by git and contains secrets.\n\nAdd %s to %s?",
 			rel(cwd, path), base, rel(cwd, gitignore))
 		if add, err = ui.Confirm(".gitignore", question, true); err != nil {
 			return err
@@ -470,14 +470,14 @@ func appendLine(path, line, label string) error {
 	if _, err := f.WriteString(line + "\n"); err != nil {
 		return err
 	}
-	say(okStyle.Render("✔") + " Añadido " + strings.TrimSpace(line) + " a " + label)
+	say(okStyle.Render("✔") + " Added " + strings.TrimSpace(line) + " to " + label)
 	return nil
 }
 
 func mask(v string) string {
 	r := []rune(v)
 	if len(r) == 0 {
-		return "(vacío)"
+		return "(empty)"
 	}
 	if len(r) <= 4 {
 		return "****"

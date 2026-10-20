@@ -35,8 +35,8 @@ func newPicker(title, description string, choices []Choice, multi bool, def stri
 		abort:   abort,
 	}
 	p.filter = tview.NewInputField().
-		SetLabel("Filtro ").
-		SetPlaceholder("escribe para filtrar…").
+		SetLabel("Filter ").
+		SetPlaceholder("type to filter…").
 		SetLabelStyle(tcell.StyleDefault.Foreground(colMuted)).
 		SetFieldStyle(tcell.StyleDefault).
 		SetPlaceholderStyle(tcell.StyleDefault.Foreground(colMuted).Italic(true))
@@ -131,7 +131,7 @@ func (p *picker) refresh(keep string) {
 		p.list.AddItem(p.render(c), "", 0, nil)
 	}
 	if len(p.visible) == 0 {
-		p.list.AddItem(tagMuted+"sin coincidencias"+tagReset, "", 0, nil)
+		p.list.AddItem(tagMuted+"no matches"+tagReset, "", 0, nil)
 	}
 	p.list.SetCurrentItem(sel)
 	p.updateTitle()
@@ -154,7 +154,7 @@ func (p *picker) render(c Choice) string {
 func (p *picker) updateTitle() {
 	title := fmt.Sprintf(" %s  %d/%d ", p.title, len(p.visible), len(p.choices))
 	if p.multi {
-		title = fmt.Sprintf(" %s  %d/%d · %d marcados ", p.title, len(p.visible), len(p.choices), p.numChecked())
+		title = fmt.Sprintf(" %s  %d/%d · %d marked ", p.title, len(p.visible), len(p.choices), p.numChecked())
 	}
 	p.box.SetTitle(title)
 }

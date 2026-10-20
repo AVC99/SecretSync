@@ -33,7 +33,7 @@ func prepareEnv(cwd string, o options) (*envTarget, error) {
 		}
 		switch len(found) {
 		case 0:
-			return nil, fmt.Errorf("no hay plantilla (%s) en %s; indica una con --template",
+			return nil, fmt.Errorf("no template (%s) in %s; pass one with --template",
 				strings.Join(templateNames, ", "), cwd)
 		case 1:
 			tpl = found[0]
@@ -43,7 +43,7 @@ func prepareEnv(cwd string, o options) (*envTarget, error) {
 				choices[i] = ui.Choice{Label: filepath.Base(p), Value: p}
 			}
 			var err error
-			if tpl, err = ui.Select("Plantilla", "Hay varias plantillas; elige cuál usar para rellenar .env.", choices, found[0]); err != nil {
+			if tpl, err = ui.Select("Template", "There are several templates; choose which one to fill .env from.", choices, found[0]); err != nil {
 				return nil, err
 			}
 		}
@@ -53,7 +53,7 @@ func prepareEnv(cwd string, o options) (*envTarget, error) {
 		return nil, err
 	}
 	if !exists(tpl) {
-		return nil, fmt.Errorf("no existe la plantilla %s", tpl)
+		return nil, fmt.Errorf("template %s does not exist", tpl)
 	}
 
 	envPath := o.envFile
@@ -64,13 +64,13 @@ func prepareEnv(cwd string, o options) (*envTarget, error) {
 		return nil, err
 	}
 	if envPath == tpl {
-		return nil, errors.New("la plantilla y el .env destino son el mismo fichero")
+		return nil, errors.New("the template and the target .env are the same file")
 	}
 	return &envTarget{template: tpl, envPath: envPath}, nil
 }
 
 func (t *envTarget) describe(cwd string) string {
-	return fmt.Sprintf("%s (plantilla %s)", rel(cwd, t.envPath), filepath.Base(t.template))
+	return fmt.Sprintf("%s (template %s)", rel(cwd, t.envPath), filepath.Base(t.template))
 }
 
 // fillResult is the outcome of matching the secrets against a template.
@@ -132,7 +132,7 @@ func (t *envTarget) apply(inj *injection) error {
 	}
 	tpl := dotenv.Parse(tplData)
 	if len(tpl.Keys()) == 0 {
-		return fmt.Errorf("la plantilla %s no define ninguna variable", rel(inj.cwd, t.template))
+		return fmt.Errorf("template %s defines no variables", rel(inj.cwd, t.template))
 	}
 
 	created := !exists(t.envPath)
@@ -157,14 +157,14 @@ func (t *envTarget) apply(inj *injection) error {
 		}
 		changes = dotenv.Diff(func(string) (string, bool) { return "", false }, final)
 		res.vars = final
-		label += " (nuevo, a partir de " + filepath.Base(t.template) + ")"
+		label += " (new, from " + filepath.Base(t.template) + ")"
 	}
 	var notes []string
 	if len(res.unused) > 0 {
-		notes = append(notes, "no están en la plantilla (se ignoran): "+strings.Join(res.unused, ", "))
+		notes = append(notes, "not in the template (ignored): "+strings.Join(res.unused, ", "))
 	}
 	if len(res.missing) > 0 {
-		warn("siguen sin valor: %s", strings.Join(res.missing, ", "))
+		warn("still without a value: %s", strings.Join(res.missing, ", "))
 	}
 
 	write, err := inj.review([]ui.Section{section(label, changes, res.vars, true, notes...)})
@@ -179,7 +179,7 @@ func (t *envTarget) apply(inj *injection) error {
 	if err := fsutil.WriteFile(t.envPath, env.Bytes(), 0o600); err != nil {
 		return err
 	}
-	say(fmt.Sprintf("%s %s en %s", okStyle.Render("✔"), countChanges(changes), rel(inj.cwd, t.envPath)))
+	say(fmt.Sprintf("%s %s in %s", okStyle.Render("✔"), countChanges(changes), rel(inj.cwd, t.envPath)))
 
 	return checkGitignore(inj.cwd, t.envPath, inj.yes)
 }

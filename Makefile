@@ -20,19 +20,19 @@ test:
 
 install:
 	CGO_ENABLED=0 go install -trimpath -ldflags "$(LDFLAGS)" .
-	@printf '\n✔ %s instalado en %s\n' "$(BINARY)" "$(GOBIN_DIR)"
+	@printf '\n✔ %s installed to %s\n' "$(BINARY)" "$(GOBIN_DIR)"
 	@case ":$$PATH:" in \
-		*":$(GOBIN_DIR):"*) printf '  Ya está en tu PATH: ejecuta "%s".\n' "$(BINARY)" ;; \
-		*) printf '  %s no está en tu PATH todavía.\n' "$(GOBIN_DIR)" ;; \
+		*":$(GOBIN_DIR):"*) printf '  Already in your PATH: run "%s".\n' "$(BINARY)" ;; \
+		*) printf '  %s is not in your PATH yet.\n' "$(GOBIN_DIR)" ;; \
 	esac
-	@printf '\nPara usar "%s" desde cualquier directorio:\n' "$(BINARY)"
+	@printf '\nTo run "%s" from any directory:\n' "$(BINARY)"
 	@printf '\n  macOS (zsh):\n'
 	@printf '    %s\n' "echo 'export PATH=\"\$$PATH:$(GOBIN_DIR)\"' >> ~/.zshrc && source ~/.zshrc"
-	@printf '    o con un enlace: %s\n' "sudo ln -sf $(GOBIN_DIR)/$(BINARY) /usr/local/bin/$(BINARY)"
+	@printf '    or with a symlink: %s\n' "sudo ln -sf $(GOBIN_DIR)/$(BINARY) /usr/local/bin/$(BINARY)"
 	@printf '\n  Linux (bash):\n'
 	@printf '    %s\n' "echo 'export PATH=\"\$$PATH:$(GOBIN_DIR)\"' >> ~/.bashrc && source ~/.bashrc"
-	@printf '    o con un enlace: %s\n' "mkdir -p ~/.local/bin && ln -sf $(GOBIN_DIR)/$(BINARY) ~/.local/bin/$(BINARY)"
-	@printf '\n  Windows (PowerShell, luego abre una terminal nueva):\n'
+	@printf '    or with a symlink: %s\n' "mkdir -p ~/.local/bin && ln -sf $(GOBIN_DIR)/$(BINARY) ~/.local/bin/$(BINARY)"
+	@printf '\n  Windows (PowerShell, then open a new terminal):\n'
 	@printf '    %s\n' "[Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + (go env GOPATH) + '\\bin', 'User')"
 	@printf '\n'
 

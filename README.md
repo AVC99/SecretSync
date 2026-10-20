@@ -1,168 +1,170 @@
 # secretsync
 
-CLI multiplataforma (macOS, Linux, Windows) que lleva secretos de **AWS Secrets Manager** a tu proyecto, con dos modos:
+[![CI](https://github.com/AVC99/secretsync/actions/workflows/ci.yml/badge.svg?event=pull_request)](https://github.com/AVC99/secretsync/actions/workflows/ci.yml)
+[![Release](https://github.com/AVC99/secretsync/actions/workflows/release.yml/badge.svg)](https://github.com/AVC99/secretsync/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/AVC99/secretsync?sort=semver)](https://github.com/AVC99/secretsync/releases/latest)
+[![Homebrew](https://img.shields.io/badge/homebrew-AVC99%2Ftap%2Fsecretsync-FBB040?logo=homebrew&logoColor=white)](https://github.com/AVC99/homebrew-tap)
+[![Go version](https://img.shields.io/github/go-mod/go-version/AVC99/secretsync)](go.mod)
 
-- **Bruno**: declara las variables en un environment de la colección (`bruno/environments/<env>.bru`) como `CLAVE: {{process.env.CLAVE}}` y guarda los valores reales en `bruno/.env`.
-- **.env**: rellena el `.env` del proyecto a partir de su plantilla (`.env.example`, `.env.template`…).
+Cross-platform CLI (macOS, Linux, Windows) that brings **AWS Secrets Manager** secrets into your project, in two modes:
+
+- **Bruno**: declares the variables in a collection environment (`bruno/environments/<env>.bru`) as `KEY: {{process.env.KEY}}` and stores the real values in `bruno/.env`.
+- **.env**: fills the project's `.env` from its template (`.env.example`, `.env.template`…).
 
 ```
-  secretsync  secretos de AWS Secrets Manager → Bruno / .env
-  Modo Bruno  ›  Destino environment "dev" (bruno)  ›  Perfil dev  ›  Región eu-west-1
+  secretsync  AWS Secrets Manager secrets → Bruno / .env
+  Mode Bruno  ›  Target environment "dev" (bruno)  ›  Profile dev  ›  Region eu-west-1
 
-  ╭ Secretos  2/12 · 1 marcados ──────────────────────────────────────╮
-  │  Filtro myapp                                                      │
+  ╭ Secrets  2/12 · 1 marked ─────────────────────────────────────────╮
+  │  Filter myapp                                                      │
   │   ● myapp/dev  Bruno dev                                           │
   │   ○ myapp/token                                                    │
   ╰────────────────────────────────────────────────────────────────────╯
-  ↑↓ mover   espacio marcar   ctrl+a todos   enter continuar   esc cancelar
+  ↑↓ move   space mark   ctrl+a all   enter continue   esc cancel
 ```
 
-## Uso
+## Installation
 
-Desde la raíz del repo:
+**macOS / Linux with Homebrew**
 
 ```sh
-secretsync            # menú interactivo
-secretsync --dry-run  # igual, pero solo enseña lo que cambiaría
+brew install AVC99/tap/secretsync
+brew upgrade secretsync   # update
 ```
 
-El flujo interactivo:
+**macOS / Linux without Homebrew**: downloads the latest release from GitHub, verifies its checksum and puts it in `/usr/local/bin` (or `~/.local/bin` if that is not writable). Run it again to update.
 
-1. **¿Qué quieres hacer?** → Bruno o `.env`.
-2. **Destino**
-   - Bruno: busca `bruno/bruno.json` (también desde subcarpetas) y te deja elegir un environment o crear uno nuevo.
-   - `.env`: usa `.env.example` / `.env.template` / `.env.sample` / `.env.dist` del directorio actual (si hay varias, pregunta).
-3. **Perfil AWS**, leído de `~/.aws/credentials` y `~/.aws/config` (respeta `AWS_SHARED_CREDENTIALS_FILE` / `AWS_CONFIG_FILE`).
-4. **Región**: `--region` → la del perfil → `AWS_REGION` / `AWS_DEFAULT_REGION` → selector.
-5. **Secretos**: lista de la cuenta con filtro; marca uno o varios.
-6. **Revisión**: diff por fichero (valores enmascarados) y botón *Escribir cambios*.
-7. Si el `.env` no está ignorado por git, ofrece añadirlo al `.gitignore`.
+```sh
+curl -fsSL https://raw.githubusercontent.com/AVC99/secretsync/main/install.sh | sh
+# a specific version or directory:
+curl -fsSL https://raw.githubusercontent.com/AVC99/secretsync/main/install.sh | VERSION=v0.1.0 INSTALL_DIR=~/bin sh
+```
 
-Al salir, el resumen de lo que se ha hecho queda impreso en la terminal.
+**With Go (any platform, including Windows)**: requires Go 1.26+.
 
-### Teclas
+```sh
+go install github.com/AVC99/secretsync@latest
+```
 
-| Tecla | Acción |
+The binary ends up in `$(go env GOPATH)/bin`. If that is not in your PATH on Windows, add it from PowerShell (then open a new terminal):
+
+```powershell
+[Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + (go env GOPATH) + '\bin', 'User')
+```
+
+**Manual download**: [Releases](https://github.com/AVC99/secretsync/releases) has a `.tar.gz` (macOS/Linux) or `.zip` (Windows) per platform; extract it and copy `secretsync` to a directory in your PATH. The binaries are static (`CGO_ENABLED=0`).
+
+The UI (tview/tcell) works in Terminal/iTerm, Linux terminals and Windows Terminal/PowerShell.
+
+## Usage
+
+From the root of your repo:
+
+```sh
+secretsync            # interactive menu
+secretsync --dry-run  # same, but only shows what would change
+```
+
+The interactive flow:
+
+1. **What do you want to do?** → Bruno or `.env`.
+2. **Target**
+   - Bruno: looks for `bruno/bruno.json` (also from subdirectories) and lets you pick an environment or create a new one.
+   - `.env`: uses `.env.example` / `.env.template` / `.env.sample` / `.env.dist` in the current directory (asks if there are several).
+3. **AWS profile**, read from `~/.aws/credentials` and `~/.aws/config` (honours `AWS_SHARED_CREDENTIALS_FILE` / `AWS_CONFIG_FILE`).
+4. **Region**: `--region` → the profile's → `AWS_REGION` / `AWS_DEFAULT_REGION` → picker.
+5. **Secrets**: the account's secrets with a filter; mark one or more.
+6. **Review**: per-file diff (values masked) and a *Write changes* button.
+7. If the `.env` is not ignored by git, it offers to add it to `.gitignore`.
+
+When it exits, a summary of what was done stays printed in the terminal.
+
+### Keys
+
+| Key | Action |
 |---|---|
-| `↑` `↓` | moverse |
-| escribir | filtrar la lista |
-| `espacio` | marcar / desmarcar secreto |
-| `ctrl+a` | marcar / desmarcar todos los visibles |
-| `enter` | elegir / continuar |
-| `←` `→` / `tab` | cambiar de botón |
-| `esc` | borrar el filtro; si está vacío, cancelar |
-| `ctrl+c` | cancelar en cualquier momento |
+| `↑` `↓` | move |
+| typing | filter the list |
+| `space` | mark / unmark a secret |
+| `ctrl+a` | mark / unmark all visible |
+| `enter` | select / continue |
+| `←` `→` / `tab` | switch button |
+| `esc` | clear the filter; if empty, cancel |
+| `ctrl+c` | cancel at any time |
 
-### Cómo se convierten los secretos
+### How secrets are converted
 
-- Secreto JSON `{"CLAVE":"valor"}` → una variable por clave. Números y booleanos con su literal; objetos/arrays anidados como JSON compacto.
-- Secreto en texto plano → una variable con el nombre del secreto normalizado (`my-app/db_pass` → `MY_APP_DB_PASS`).
-- Si una clave aparece en varios secretos, gana el último elegido (y se avisa).
+- JSON secret `{"KEY":"value"}` → one variable per key. Numbers and booleans keep their literal; nested objects/arrays become compact JSON.
+- Plain-text secret → one variable named after the normalised secret name (`my-app/db_pass` → `MY_APP_DB_PASS`).
+- If a key appears in several secrets, the last one selected wins (with a warning).
 
-### Modo Bruno
+### Bruno mode
 
-- En el environment se escribe `CLAVE: {{process.env.CLAVE}}` dentro de `vars { }` (se crea el bloque o el fichero si no existen). El resto del fichero no se toca.
-- El valor real va a `bruno/.env`, que es el único `.env` que lee Bruno y no debe versionarse.
-- Las variables de `vars:secret [ ]` no se pueden rellenar desde fuera (Bruno las cifra localmente); si un secreto coincide con una de ellas se avisa y no se toca en el `.bru`.
-- Si Bruno está abierto, recarga la colección para ver los cambios.
+- The environment gets `KEY: {{process.env.KEY}}` inside `vars { }` (the block or the file are created if missing). The rest of the file is left untouched.
+- The real value goes to `bruno/.env`, which is the only `.env` Bruno reads and must not be committed.
+- Variables in `vars:secret [ ]` cannot be filled from outside (Bruno encrypts them locally); if a secret matches one of them you get a warning and the `.bru` is not changed for it.
+- If Bruno is open, reload the collection to see the changes.
 
-### Modo .env
+### .env mode
 
-- Solo se rellenan las claves que aparecen en la plantilla (el nombre se compara sin distinguir mayúsculas). Las claves de los secretos que no están en la plantilla se ignoran y se listan.
-- Si `.env` no existe se crea copiando la plantilla (con sus comentarios) y sustituyendo los valores.
-- Si existe, se actualizan las claves que vienen de los secretos, se añaden las que falten con el valor por defecto de la plantilla y el resto de líneas se conserva.
-- Se avisa de las claves que se quedan sin valor.
+- Only keys present in the template are filled (names are compared case-insensitively). Secret keys that are not in the template are ignored and listed.
+- If `.env` does not exist it is created as a copy of the template (comments included) with the values filled in.
+- If it exists, keys coming from the secrets are updated, missing template keys are added with the template's default and every other line is kept.
+- Keys that are left without a value are reported.
 
-En ambos modos la escritura es atómica y un `.env` nuevo se crea con permisos `0600`.
+In both modes writes are atomic and a new `.env` is created with `0600` permissions.
 
 ## Flags
 
-| Flag | Descripción |
+| Flag | Description |
 |---|---|
-| `--mode bruno\|env` | salta el menú (útil en scripts) |
-| `--profile` | perfil AWS |
-| `--region` | región AWS |
-| `--filter` | filtra la lista de secretos por nombre o descripción |
-| `--secret` | secreto a inyectar; repetible. Omite la selección |
-| `--environment` | [bruno] environment (se crea si no existe) |
-| `--dir` | [bruno] ruta de la colección |
-| `--template` | [env] plantilla |
-| `--env-file` | [env] `.env` destino (por defecto junto a la plantilla) |
-| `--dry-run` | muestra los cambios sin escribir |
-| `--yes` | no pide confirmación (y añade el `.env` al `.gitignore` si hace falta) |
-| `--version` | versión |
+| `--mode bruno\|env` | skip the menu (useful in scripts) |
+| `--profile` | AWS profile |
+| `--region` | AWS region |
+| `--filter` | filter the secret list by name or description |
+| `--secret` | secret to inject; repeatable. Skips the selection |
+| `--environment` | [bruno] environment (created if missing) |
+| `--dir` | [bruno] collection path |
+| `--template` | [env] template |
+| `--env-file` | [env] target `.env` (default: next to the template) |
+| `--dry-run` | show the changes without writing |
+| `--yes` | do not ask for confirmation (and add the `.env` to `.gitignore` if needed) |
+| `--version` | print the version |
 
-Sin terminal interactiva (CI, scripts) se usa salida de texto; hay que pasar todo por flags:
+Without an interactive terminal (CI, scripts) it falls back to plain-text output; pass everything as flags:
 
 ```sh
 secretsync --mode bruno --environment dev --profile dev --secret myapp/dev --yes
 secretsync --mode env --profile dev --secret myapp/dev --secret myapp/token --yes
 ```
 
-## Instalación
-
-**macOS / Linux con Homebrew**
+## Development
 
 ```sh
-brew install AVC99/tap/secretsync
-brew upgrade secretsync   # actualizar
-```
-
-**macOS / Linux sin Homebrew**: descarga la última versión de GitHub Releases, comprueba el checksum y la deja en `/usr/local/bin` (o `~/.local/bin` si no tienes permiso). Para actualizar, vuelve a ejecutarlo.
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/AVC99/secretsync/main/install.sh | sh
-# versión o directorio concretos:
-curl -fsSL https://raw.githubusercontent.com/AVC99/secretsync/main/install.sh | VERSION=v0.1.0 INSTALL_DIR=~/bin sh
-```
-
-**Con Go (cualquier plataforma, incluido Windows)**: requiere Go 1.26+.
-
-```sh
-go install github.com/AVC99/secretsync@latest
-```
-
-El binario queda en `$(go env GOPATH)/bin`; si no está en el PATH, en Windows añádelo desde PowerShell (y abre una terminal nueva):
-
-```powershell
-[Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + (go env GOPATH) + '\bin', 'User')
-```
-
-**Descarga manual**: en [Releases](https://github.com/AVC99/secretsync/releases) hay un `.tar.gz` (macOS/Linux) o `.zip` (Windows) por plataforma; descomprime y copia `secretsync` a un directorio del PATH. Los binarios son estáticos (`CGO_ENABLED=0`).
-
-La UI (tview/tcell) funciona en Terminal/iTerm, terminales Linux y Windows Terminal/PowerShell.
-
-### Desde el código
-
-```sh
-make install        # instala en $GOBIN / ~/go/bin y explica cómo añadirlo al PATH en cada plataforma
+make test           # go vet + go test
 make build          # ./secretsync
-make dist           # binarios en dist/ para darwin|linux|windows × amd64|arm64
-make snapshot       # release completa en dist/ (archivos, checksums, cask) sin publicar; requiere goreleaser
+make install        # installs to $GOBIN / ~/go/bin and explains how to add it to the PATH on each platform
+make dist           # binaries in dist/ for darwin|linux|windows × amd64|arm64
+make snapshot       # full release in dist/ (archives, checksums, cask) without publishing; requires goreleaser
 ```
 
-## Desarrollo
+To test without real AWS you can point the SDK at a local endpoint with `AWS_ENDPOINT_URL_SECRETS_MANAGER=http://127.0.0.1:4566` (LocalStack, for example).
 
-```sh
-make test
-```
+## Workflow and releases
 
-Para probar sin AWS real puedes apuntar el SDK a un endpoint local con `AWS_ENDPOINT_URL_SECRETS_MANAGER=http://127.0.0.1:4566` (LocalStack, por ejemplo).
+Work happens on `dev` and lands in `main` through a pull request:
 
-## Flujo de trabajo y releases
+1. **PR to `main` or `dev`** (and every push to the PR branch) → `ci` workflow: `go vet` and `go test` on Linux, macOS and Windows, plus a snapshot `goreleaser` run to check the release can be built. GitHub Copilot reviews the PR automatically.
+2. **Merge** → done manually by the repo owner once the checks pass.
+3. **Merge into `main`** → `release` workflow: runs the tests again, computes the next version, creates the tag and runs GoReleaser, which publishes the Release (binaries and `checksums.txt`) and updates the cask in [AVC99/homebrew-tap](https://github.com/AVC99/homebrew-tap).
 
-Se trabaja en `dev` y se integra en `main` con un pull request:
+The version comes from the PR labels:
 
-1. PR a `main` o `dev` (y cada push a la rama del PR) → workflow `ci`: `go vet` y `go test` en Linux, macOS y Windows, y un `goreleaser` en modo snapshot para comprobar que la release se puede generar.
-2. Merge del PR en `main` → workflow `release`: vuelve a pasar los tests, calcula la versión siguiente, crea el tag y ejecuta GoReleaser, que publica la Release (binarios y `checksums.txt`) y actualiza el cask en [AVC99/homebrew-tap](https://github.com/AVC99/homebrew-tap).
-
-La versión sale de las etiquetas del PR:
-
-| Etiqueta | Ejemplo |
+| Label | Example |
 |---|---|
-| (ninguna) | `v0.1.0` → `v0.1.1` |
+| (none) | `v0.1.0` → `v0.1.1` |
 | `minor` | `v0.1.0` → `v0.2.0` |
 | `major` | `v0.1.0` → `v1.0.0` |
-| `no-release` | no se publica nada |
+| `no-release` | nothing is published |
 
-La primera release es `v0.1.0`. El workflow necesita el secret `TAP_DEPLOY_KEY` en este repo: la clave privada de una deploy key con escritura en `homebrew-tap`.
+The `release` workflow needs the `TAP_DEPLOY_KEY` secret in this repo: the private key of a deploy key with write access to `homebrew-tap`.

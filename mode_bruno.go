@@ -43,7 +43,7 @@ func prepareBruno(cwd string, o options) (*brunoTarget, error) {
 func chooseEnvironment(cwd, collection, flagValue string) (bruno.Environment, error) {
 	if flagValue != "" {
 		if !bruno.ValidEnvironmentName(flagValue) {
-			return bruno.Environment{}, fmt.Errorf("nombre de environment no válido: %q", flagValue)
+			return bruno.Environment{}, fmt.Errorf("invalid environment name: %q", flagValue)
 		}
 		return bruno.Environment{Name: flagValue, Path: bruno.EnvironmentPath(collection, flagValue)}, nil
 	}
@@ -58,9 +58,9 @@ func chooseEnvironment(cwd, collection, flagValue string) (bruno.Environment, er
 		for _, e := range envs {
 			choices = append(choices, ui.Choice{Label: e.Name, Value: e.Name, Hint: rel(cwd, e.Path)})
 		}
-		choices = append(choices, ui.Choice{Label: "+ Crear environment nuevo", Value: newEnvironment})
-		choice, err = ui.Select("Environment de Bruno",
-			"Environment donde declarar las variables. Los valores irán a "+rel(cwd, filepath.Join(collection, ".env"))+".",
+		choices = append(choices, ui.Choice{Label: "+ Create a new environment", Value: newEnvironment})
+		choice, err = ui.Select("Bruno environment",
+			"Environment where the variables are declared. The values go to "+rel(cwd, filepath.Join(collection, ".env"))+".",
 			choices, envs[0].Name)
 		if err != nil {
 			return bruno.Environment{}, err
@@ -70,14 +70,14 @@ func chooseEnvironment(cwd, collection, flagValue string) (bruno.Environment, er
 		return bruno.Environment{Name: choice, Path: bruno.EnvironmentPath(collection, choice)}, nil
 	}
 
-	name, err := ui.Input("Nuevo environment",
-		"Se creará "+rel(cwd, bruno.EnvironmentPath(collection, "<nombre>")), "local",
+	name, err := ui.Input("New environment",
+		"Will create "+rel(cwd, bruno.EnvironmentPath(collection, "<name>")), "local",
 		func(s string) error {
 			switch {
 			case !bruno.ValidEnvironmentName(s):
-				return errors.New("usa letras, números, espacios, '.', '-' o '_'")
+				return errors.New("use letters, digits, spaces, '.', '-' or '_'")
 			case exists(bruno.EnvironmentPath(collection, s)):
-				return errors.New("ya existe un environment con ese nombre")
+				return errors.New("an environment with that name already exists")
 			}
 			return nil
 		})
@@ -106,7 +106,7 @@ func (t *brunoTarget) apply(inj *injection) error {
 	secretVars := bru.Secrets()
 	for k := range inj.vars {
 		if slices.Contains(secretVars, k) {
-			warn("%s ya es una variable secreta de Bruno en %s; quítala de vars:secret para usar el valor de AWS",
+			warn("%s is already a Bruno secret variable in %s; remove it from vars:secret to use the AWS value",
 				k, t.env.Name)
 			continue
 		}
@@ -117,7 +117,7 @@ func (t *brunoTarget) apply(inj *injection) error {
 	dotChanges := dot.Diff(inj.vars)
 	envLabel := rel(inj.cwd, t.env.Path)
 	if envData == nil {
-		envLabel += " (nuevo)"
+		envLabel += " (new)"
 	}
 	write, err := inj.review([]ui.Section{
 		section(envLabel, envChanges, refs, false),
@@ -141,7 +141,7 @@ func (t *brunoTarget) apply(inj *injection) error {
 	say(fmt.Sprintf("%s %s: %s · %s: %s", okStyle.Render("✔"),
 		rel(inj.cwd, t.env.Path), countChanges(envChanges),
 		rel(inj.cwd, t.dotenvPath), countChanges(dotChanges)))
-	say(dimStyle.Render("  Si Bruno está abierto, recarga la colección para ver los cambios."))
+	say(dimStyle.Render("  If Bruno is open, reload the collection to see the changes."))
 
 	return checkGitignore(inj.cwd, t.dotenvPath, inj.yes)
 }
