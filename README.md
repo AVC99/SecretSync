@@ -149,11 +149,20 @@ make test
 
 Para probar sin AWS real puedes apuntar el SDK a un endpoint local con `AWS_ENDPOINT_URL_SECRETS_MANAGER=http://127.0.0.1:4566` (LocalStack, por ejemplo).
 
-## Publicar una versión
+## Flujo de trabajo y releases
 
-```sh
-git tag v0.1.0
-git push origin v0.1.0
-```
+Se trabaja en `dev` y se integra en `main` con un pull request:
 
-El workflow `release` ejecuta los tests y GoReleaser, que crea la Release con los binarios y `checksums.txt` y actualiza el cask en [AVC99/homebrew-tap](https://github.com/AVC99/homebrew-tap). Necesita el secret `TAP_DEPLOY_KEY` en este repo: la clave privada de una deploy key con escritura en `homebrew-tap`.
+1. Push a `dev` o PR a `main`/`dev` → workflow `ci`: `go vet` y `go test` en Linux, macOS y Windows, y un `goreleaser` en modo snapshot para comprobar que la release se puede generar.
+2. Merge del PR en `main` → workflow `release`: vuelve a pasar los tests, calcula la versión siguiente, crea el tag y ejecuta GoReleaser, que publica la Release (binarios y `checksums.txt`) y actualiza el cask en [AVC99/homebrew-tap](https://github.com/AVC99/homebrew-tap).
+
+La versión sale de las etiquetas del PR:
+
+| Etiqueta | Ejemplo |
+|---|---|
+| (ninguna) | `v0.1.0` → `v0.1.1` |
+| `minor` | `v0.1.0` → `v0.2.0` |
+| `major` | `v0.1.0` → `v1.0.0` |
+| `no-release` | no se publica nada |
+
+La primera release es `v0.1.0`. El workflow necesita el secret `TAP_DEPLOY_KEY` en este repo: la clave privada de una deploy key con escritura en `homebrew-tap`.
